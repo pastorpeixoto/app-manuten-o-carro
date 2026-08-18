@@ -1,4 +1,4 @@
 python
 import streamlit as st
-st.title{"App Manutenção de carro"}
-st.write{"Aplicativo rodando com sucesso!"}
+st.title{"App Manutenção de Carro"}
+st.write{"Seu aplicativo de manutenção está online e funcionando perfeitamente!"}
