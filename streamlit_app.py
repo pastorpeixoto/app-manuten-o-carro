@@ -4,7 +4,7 @@ import sqlite3
 import os
 
 # Configuração da página
-st.set_page_config(page_title="Manutenção de Veículos", page_icon="🚗", layout="centered")
+st.set_page_config(page_title="Manutenção de Veículos", page_icon="L A Y O U T", layout="centered")
 
 st.title("🚗 Controle de Manutenção de Veículos")
 
