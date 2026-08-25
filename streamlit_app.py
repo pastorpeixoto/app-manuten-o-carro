@@ -110,4 +110,4 @@ if not df.empty:
     )
 else:
     st.info("Nenhuma manutenção cadastrada ainda.")
-
+conn.close()
