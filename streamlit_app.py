@@ -48,7 +48,7 @@ def carregar_dados():
 def salvar_dados(modelo, placa, servico, km, data, obs):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('''
+    c.execute("""
         INSERT INTO manutencoes (modelo, placa, servico, km, data, observacoes)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (modelo, placa, servico, km, str(data), obs))
