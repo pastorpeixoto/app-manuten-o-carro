@@ -5,10 +5,9 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
 # COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS ABAIXO:
-URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
-
+URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
 st.title("🚗 Salvcar - Controle de Manutenções")
-
+ 
 def carregar_dados():
     conn = st.connection("gsheets", type=GSheetsConnection) 
     df = conn.read(spreadsheet=URL_PLANILHA, ttl="0s")
