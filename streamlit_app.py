@@ -5,7 +5,7 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
 # COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS ABAIXO:
-URL_PLANILHA = "COLE_O_LINK_DA_SUA_PLANILHA_AQUI"
+URL_PLANILHA = https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?usp=sharing"
 
 st.title("🚗 Salvcar - Controle de Manutenções")
 
