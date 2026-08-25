@@ -2,16 +2,19 @@ import pandas as pd
 import streamlit as st
 import re
 
-st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
+# Nome do aplicativo ajustado
+NOME_SISTEMA = "LAYOU T - Gestão de Manutenções"
+
+st.set_page_config(page_title=NOME_SISTEMA, page_icon="🚗", layout="wide")
 
 # 1. LINK DA PLANILHA PUBLICADA NA WEB (formato CSV):
 URL_PUBLICADA_CSV = r"""https://docs.google.com/spreadsheets/d/e/2PACX-1vTpcVNInjDdwUZ5E0tgRARfXn63Bx3zBRgFngEW4ffivNPv1bICkbeDfeO-74vUESMg93pj0-Ppyu9p/pub?output=csv"""
 
-st.title("🚗 Salvcar - Controle de Manutenções")
+st.title(f"🚗 {NOME_SISTEMA}")
 
 def carregar_dados():
     if "SUA_URL_PUBLICADA" in URL_PUBLICADA_CSV:
-        st.warning("Cole o link gerado em 'Publicar na web' na linha 8 do seu código no GitHub.")
+        st.warning("Cole o link gerado em 'Publicar na web' na linha 11 do seu código no GitHub.")
         return pd.DataFrame()
     
     try:
@@ -86,11 +89,20 @@ elif opcao == "Ver Relatório":
         col_veiculo = df.columns[1] if len(df.columns) >= 2 else df.columns[0]
         col_servico = df.columns[2] if len(df.columns) >= 3 else df.columns[0]
         
-        # Filtro de Veículo
-        lista_veiculos = ["Todos"] + sorted(list(df[col_veiculo].dropna().astype(str).unique()))
+        # --- FILTRO POR VEÍCULO NA BARRA LATERAL ---
+        st.sidebar.markdown("---")
+        st.sidebar.header("Filtros")
+        
+        # Pega a lista única de veículos cadastrados
+        veiculos_unicos = df[col_veiculo].dropna().astype(str).unique()
+        lista_veiculos = ["Todos os Veículos"] + sorted(list(veiculos_unicos))
+        
         veiculo_selecionado = st.sidebar.selectbox("Filtrar por Veículo:", lista_veiculos)
         
-        df_filtrado = df if veiculo_selecionado == "Todos" else df[df[col_veiculo].astype(str) == veiculo_selecionado]
+        if veiculo_selecionado != "Todos os Veículos":
+            df_filtrado = df[df[col_veiculo].astype(str) == veiculo_selecionado]
+        else:
+            df_filtrado = df
         
         # Métricas no topo
         total_gasto = df_filtrado['Valor_Limpo'].sum()
