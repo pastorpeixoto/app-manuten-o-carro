@@ -24,12 +24,21 @@ def init_db():
             data TEXT,
             observacoes TEXT
         )
+   def criar_tabela():
+    conn = sqlite3.connect('salvcar.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS manutencoes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data TEXT,
+            veiculo TEXT,
+            servico TEXT,
+            valor REAL,
+            observacoes TEXT
+        )
     """)
-
-conn.commit()
-conn.close() 
-
-def inserir_manutencao(data, veiculo, servico, valor, observacoes):
+    conn.commit()
+    conn.close()
     conn = sqlite3.connect('salvcar.db')
     cursor = conn.cursor()
     cursor.execute("""
