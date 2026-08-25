@@ -77,20 +77,20 @@ elif opcao == "Ver Relatório":
     df = carregar_dados()
     
     if not df.empty:
-        # Coluna D (índice 3 no Python) para os valores numéricos
+        # Coluna D (índice 3) para os valores numéricos
         col_valor = df.columns[3] if len(df.columns) >= 4 else df.columns[-1]
         
-        # Cria uma coluna numérica limpa para os cálculos e gráficos
+        # Converte valores da Coluna D em números
         df['Valor_Limpo'] = df[col_valor].apply(extrair_valor_numerico)
         
-        # Filtro de Veículo no Menu Lateral
+        # Filtro de Veículo
         col_veiculo = df.columns[1] if len(df.columns) >= 2 else df.columns[0]
         lista_veiculos = ["Todos"] + sorted(list(df[col_veiculo].dropna().astype(str).unique()))
         veiculo_selecionado = st.sidebar.selectbox("Filtrar por Veículo:", lista_veiculos)
         
         df_filtrado = df if veiculo_selecionado == "Todos" else df[df[col_veiculo].astype(str) == veiculo_selecionado]
         
-        # Exibição das Métricas Principais
+        # Métricas
         total_gasto = df_filtrado['Valor_Limpo'].sum()
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -102,31 +102,26 @@ elif opcao == "Ver Relatório":
             
         st.markdown("---")
         
-        # Seção de Gráficos Visuais
+        # Seção de Gráficos Visuais (compatível com todas as versões do Streamlit)
         st.subheader("📊 Análise Visual de Custos")
         
         col_g1, col_g2 = st.columns(2)
         
-        # Gráfico 1: Custos por tipo de serviço
         col_servico = df.columns[2] if len(df.columns) >= 3 else df.columns[0]
-        gastos_servico = df_filtrado.groupby(col_servico)['Valor_Limpo'].sum().reset_index()
-        gastos_servico = gastos_servico.sort_values(by='Valor_Limpo', ascending=False)
         
         with col_g1:
             st.markdown("*Gasto Total por Serviço (R$)*")
-            st.bar_chart(data=gastos_servico, x=col_servico, y='Valor_Limpo', color="#0066CC")
+            chart_servico = df_filtrado.groupby(col_servico)['Valor_Limpo'].sum()
+            st.bar_chart(chart_servico)
             
-        # Gráfico 2: Custos por veículo
         with col_g2:
             st.markdown("*Gasto Total por Veículo (R$)*")
-            gastos_veiculo = df_filtrado.groupby(col_veiculo)['Valor_Limpo'].sum().reset_index()
-            gastos_veiculo = gastos_veiculo.sort_values(by='Valor_Limpo', ascending=False)
-            st.bar_chart(data=gastos_veiculo, x=col_veiculo, y='Valor_Limpo', color="#2E7D32")
+            chart_veiculo = df_filtrado.groupby(col_veiculo)['Valor_Limpo'].sum()
+            st.bar_chart(chart_veiculo)
             
         st.markdown("---")
         st.subheader("📋 Tabela Detalhada de Registros")
         
-        # Exibe a tabela sem a coluna técnica extra
         df_display = df_filtrado.drop(columns=['Valor_Limpo'], errors='ignore')
         st.dataframe(df_display, use_container_width=True)
             
