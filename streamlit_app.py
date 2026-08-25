@@ -27,7 +27,7 @@ def init_db():
     """)
 
 conn.commit()
-    conn.close()
+conn.close() 
 
 def inserir_manutencao(data, veiculo, servico, valor, observacoes):
     conn = sqlite3.connect('salvcar.db')
