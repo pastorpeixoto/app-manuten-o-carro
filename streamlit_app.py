@@ -50,9 +50,24 @@ if opcao == "Cadastrar Manutenção":
     with st.form("form_manutencao"):
         data = st.date_input("Data do Serviço")
         veiculo = st.text_input("Placa / Modelo do Veículo")
-        servico = st.text_input("Descrição do Serviço")
+        
+        # Lista com as opções prontas de peças e serviços:
+        lista_servicos = [
+            "Troca de Óleo e Filtros",
+            "Sistemas de Freios (Pastilhas/Discos)",
+            "Alinhamento e Balanceamento",
+            "Troca de Pneus",
+            "Suspensão e Amortecedores",
+            "Correia Dentada / Correias",
+            "Bateria e Sistema Elétrico",
+            "Ar Condicionado",
+            "Embreagem",
+            "Revisão Geral / Outro"
+        ]
+        
+        servico = st.selectbox("Descrição do Serviço / Peça", lista_servicos)
         valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
-        observacoes = st.text_area("Observações")
+        observacoes = st.text_area("Observações (detalhes das peças trocadas, marca, etc.)")
         
         submetido = st.form_submit_button("Salvar Manutenção")
         
