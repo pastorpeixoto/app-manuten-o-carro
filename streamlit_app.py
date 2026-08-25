@@ -64,25 +64,19 @@ elif opcao == "Ver Relatório":
     if not df.empty:
         st.dataframe(df, use_container_width=True)
         
-        colunas_disponiveis = list(df.columns)
+        # Pega a Coluna D (índice 3 no Python, pois começa em 0: A=0, B=1, C=2, D=3)
+        if len(df.columns) >= 4:
+            col_selecionada = df.columns[3] # Coluna D
+        else:
+            col_selecionada = df.columns[-1] # Caso tenha menos colunas, pega a última
         
-        coluna_valor_padrao = next(
-            (col for col in colunas_disponiveis if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])), 
-            colunas_disponiveis[-1]
-        )
+        st.markdown(f"*Coluna calculada para o Total:* {col_selecionada} (Coluna D)")
         
-        st.markdown("---")
-        col_selecionada = st.selectbox(
-            "Selecione a coluna que contém os Valores (R$):", 
-            colunas_disponiveis, 
-            index=colunas_disponiveis.index(coluna_valor_padrao)
-        )
-        
-        # Lógica de conversão direta linha a linha
+        # Soma linha a linha os valores da Coluna D
         total_gasto = 0.0
         for item in df[col_selecionada]:
             txt = str(item).strip()
-            # Extrai apenas os números e os separadores (ponto/vírgula)
+            # Extrai os números e vírgulas/pontos
             numeros = re.findall(r"[\d.,]+", txt)
             if numeros:
                 val_str = numeros[0]
@@ -105,7 +99,6 @@ elif opcao == "Ver Relatório":
             
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
-    
             
 
 
