@@ -66,7 +66,6 @@ elif opcao == "Ver Relatório":
         
         colunas_disponiveis = list(df.columns)
         
-        # Tenta identificar automaticamente a coluna de valores
         coluna_valor_padrao = next(
             (col for col in colunas_disponiveis if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])), 
             colunas_disponiveis[-1]
@@ -79,39 +78,22 @@ elif opcao == "Ver Relatório":
             index=colunas_disponiveis.index(coluna_valor_padrao)
         )
         
-        def limpar_valor_extremo(val):
-            if pd.isna(val):
-                return 0.0
-            
-            # Converte tudo para texto e remove letras/símbolos mantendo apenas digitos, pontos e virgulas
-            s = str(val).strip()
-            # Se for número puro (int ou float)
-            if isinstance(val, (int, float)):
-                return float(val)
-                
-            # Remove R$, espaços e caracteres não numéricos
-            s = re.sub(r"[^\d.,]", "", s)
-            
-            if not s:
-                return 0.0
-            
-            # Se tem ponto e vírgula (ex: 1.500,50) -> remove ponto, troca virgula por ponto
-            if "." in s and "," in s:
-                s = s.replace(".", "").replace(",", ".")
-            # Se tem apenas vírgula (ex: 1500,50 ou 15,00)
-            elif "," in s:
-                s = s.replace(",", ".")
-            # Se tem múltiplos pontos de milhar sem vírgula (ex: 1.500.000)
-            elif s.count(".") > 1:
-                s = s.replace(".", "")
-                
-            try:
-                return float(s)
-            except ValueError:
-                return 0.0
-
-        valores_convertidos = df[col_selecionada].apply(limpar_valor_extremo)
-        total_gasto = valores_convertidos.sum()
+        # Lógica de conversão direta linha a linha
+         total_gasto = 0.0
+         for item in df[col_selecionada]:
+             txt = str(item).strip()
+             # Extrai apenas os números e os separadores (ponto/vírgula)
+             numeros = re.findall(r"[\d.,]+", txt)
+             if numeros:
+                 val_str = numeros[0]
+                 if "." in val_str and "," in val_str:
+                     val_str = val_str.replace(".", "").replace(",", ".")
+                 elif "," in val_str:
+                     val_str = val_str.replace(",", ".")
+                 try:
+                     total_gasto += float(val_str)
+                 except ValueError:
+                     pass
         
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -123,5 +105,8 @@ elif opcao == "Ver Relatório":
             
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
+    
+            
+
 
 
