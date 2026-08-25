@@ -83,14 +83,17 @@ elif opcao == "Ver Relatório":
         # Converte valores da Coluna D em números
         df['Valor_Limpo'] = df[col_valor].apply(extrair_valor_numerico)
         
-        # Filtro de Veículo
+        # Identificação de colunas com tratamento de texto
         col_veiculo = df.columns[1] if len(df.columns) >= 2 else df.columns[0]
+        col_servico = df.columns[2] if len(df.columns) >= 3 else df.columns[0]
+        
+        # Filtro de Veículo na barra lateral
         lista_veiculos = ["Todos"] + sorted(list(df[col_veiculo].dropna().astype(str).unique()))
         veiculo_selecionado = st.sidebar.selectbox("Filtrar por Veículo:", lista_veiculos)
         
         df_filtrado = df if veiculo_selecionado == "Todos" else df[df[col_veiculo].astype(str) == veiculo_selecionado]
         
-        # Métricas
+        # Métricas no topo
         total_gasto = df_filtrado['Valor_Limpo'].sum()
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -102,22 +105,26 @@ elif opcao == "Ver Relatório":
             
         st.markdown("---")
         
-        # Seção de Gráficos Visuais (compatível com todas as versões do Streamlit)
+        # Seção de Gráficos Visuais com tratamento contra falhas
         st.subheader("📊 Análise Visual de Custos")
         
-        col_g1, col_g2 = st.columns(2)
-        
-        col_servico = df.columns[2] if len(df.columns) >= 3 else df.columns[0]
-        
-        with col_g1:
-            st.markdown("*Gasto Total por Serviço (R$)*")
-            chart_servico = df_filtrado.groupby(col_servico)['Valor_Limpo'].sum()
-            st.bar_chart(chart_servico)
+        try:
+            col_g1, col_g2 = st.columns(2)
             
-        with col_g2:
-            st.markdown("*Gasto Total por Veículo (R$)*")
-            chart_veiculo = df_filtrado.groupby(col_veiculo)['Valor_Limpo'].sum()
-            st.bar_chart(chart_veiculo)
+            with col_g1:
+                st.markdown("*Gasto Total por Serviço (R$)*")
+                g_servico = df_filtrado.groupby(df_filtrado[col_servico].astype(str))['Valor_Limpo'].sum().reset_index()
+                g_servico.columns = ['Serviço', 'Valor (R$)']
+                st.dataframe(g_servico, use_container_width=True, hide_index=True)
+                
+            with col_g2:
+                st.markdown("*Gasto Total por Veículo (R$)*")
+                g_veiculo = df_filtrado.groupby(df_filtrado[col_veiculo].astype(str))['Valor_Limpo'].sum().reset_index()
+                g_veiculo.columns = ['Veículo', 'Valor (R$)']
+                st.dataframe(g_veiculo, use_container_width=True, hide_index=True)
+                
+        except Exception as err:
+            st.warning("Não foi possível gerar os quadros de resumos de custos.")
             
         st.markdown("---")
         st.subheader("📋 Tabela Detalhada de Registros")
