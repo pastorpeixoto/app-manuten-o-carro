@@ -79,21 +79,21 @@ elif opcao == "Ver Relatório":
         )
         
         # Lógica de conversão direta linha a linha
-         total_gasto = 0.0
-         for item in df[col_selecionada]:
-             txt = str(item).strip()
-             # Extrai apenas os números e os separadores (ponto/vírgula)
-             numeros = re.findall(r"[\d.,]+", txt)
-             if numeros:
-                 val_str = numeros[0]
-                 if "." in val_str and "," in val_str:
-                     val_str = val_str.replace(".", "").replace(",", ".")
-                 elif "," in val_str:
-                     val_str = val_str.replace(",", ".")
-                 try:
-                     total_gasto += float(val_str)
-                 except ValueError:
-                     pass
+        total_gasto = 0.0
+        for item in df[col_selecionada]:
+            txt = str(item).strip()
+            # Extrai apenas os números e os separadores (ponto/vírgula)
+            numeros = re.findall(r"[\d.,]+", txt)
+            if numeros:
+                val_str = numeros[0]
+                if "." in val_str and "," in val_str:
+                    val_str = val_str.replace(".", "").replace(",", ".")
+                elif "," in val_str:
+                    val_str = val_str.replace(",", ".")
+                try:
+                    total_gasto += float(val_str)
+                except ValueError:
+                    pass
         
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
