@@ -63,33 +63,38 @@ elif opcao == "Ver Relatório":
     if not df.empty:
         st.dataframe(df, use_container_width=True)
         
-        # Procura por qualquer coluna que contenha termos relacionados a valor/custo/preço
-        colunas_valor = [col for col in df.columns if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])]
+        # Procura a coluna de valor pelas palavras-chave ou seleciona a caixa de escolha
+        colunas_disponiveis = list(df.columns)
         
-        # Se não achar pelos termos acima, pega a última coluna da planilha como padrão
-        if not colunas_valor and len(df.columns) > 0:
-            col_nome = df.columns[-1]
-        elif colunas_valor:
-            col_nome = colunas_valor[0]
-        else:
-            col_nome = None
+        # Tenta identificar automaticamente
+        coluna_valor_padrao = next((col for col in colunas_disponiveis if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])), colunas_disponiveis[-1])
+        
+        st.markdown("---")
+        col_selecionada = st.selectbox("Selecione a coluna que contém os Valores (R$):", colunas_disponiveis, index=colunas_disponiveis.index(coluna_valor_padrao))
+        
+        def converter_para_numero(val):
+            if pd.isna(val):
+                return 0.0
+            val_str = str(val).replace("R$", "").replace(" ", "").strip()
+            # Se tiver vírgula e ponto (ex: 1.500,00)
+            if "." in val_str and "," in val_str:
+                val_str = val_str.replace(".", "").replace(",", ".")
+            # Se tiver apenas vírgula (ex: 1500,00 ou 15,00)
+            elif "," in val_str:
+                val_str = val_str.replace(",", ".")
             
-        if col_nome:
-            # Limpa formatação de moeda (R$, pontos, vírgulas) para converter em número e somar
-            valores_limpos = pd.to_numeric(
-                df[col_nome].astype(str)
-                .str.replace("R$", "", regex=False)
-                .str.replace(" ", "", regex=False)
-                .str.replace(".", "", regex=False)
-                .str.replace(",", ".", regex=False)
-                .str.strip(),
-                errors="coerce"
-            ).fillna(0)
-            
-            total_gasto = valores_limpos.sum()
-            st.metric("Total Gasto com Manutenções", f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+            try:
+                return float(val_str)
+            except ValueError:
+                return 0.0
+
+        valores_convertidos = df[col_selecionada].apply(converter_para_numero)
+        total_gasto = valores_convertidos.sum()
+        
+        # Exibe o total formatado em Reais
+        total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        st.metric("Total Gasto com Manutenções", total_fmt)
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
-            
 
 
