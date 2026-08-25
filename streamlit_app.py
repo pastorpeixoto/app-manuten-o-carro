@@ -9,7 +9,7 @@ URL_PUBLICADA_CSV = r"""https://docs.google.com/spreadsheets/d/e/2PACX-1vTpcVNIn
 st.title("🚗 Salvcar - Controle de Manutenções")
 
 def carregar_dados():
-    if "PASTE_AQUI" in URL_PUBLICADA_CSV:
+    if "SUA_URL_PUBLICADA" in URL_PUBLICADA_CSV:
         st.warning("Cole o link gerado em 'Publicar na web' na linha 8 do seu código no GitHub.")
         return pd.DataFrame()
     
@@ -63,18 +63,33 @@ elif opcao == "Ver Relatório":
     if not df.empty:
         st.dataframe(df, use_container_width=True)
         
-        colunas_valor = [col for col in df.columns if any(k in str(col).lower() for k in ["valor", "preco", "custo", "r$"])]
-        if colunas_valor:
+        # Procura por qualquer coluna que contenha termos relacionados a valor/custo/preço
+        colunas_valor = [col for col in df.columns if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])]
+        
+        # Se não achar pelos termos acima, pega a última coluna da planilha como padrão
+        if not colunas_valor and len(df.columns) > 0:
+            col_nome = df.columns[-1]
+        elif colunas_valor:
             col_nome = colunas_valor[0]
+        else:
+            col_nome = None
+            
+        if col_nome:
+            # Limpa formatação de moeda (R$, pontos, vírgulas) para converter em número e somar
             valores_limpos = pd.to_numeric(
-                df[col_nome].astype(str).str.replace("R$", "", regex=False).str.replace(".", "", regex=False).str.replace(",", ".", regex=False).str.strip(),
+                df[col_nome].astype(str)
+                .str.replace("R$", "", regex=False)
+                .str.replace(" ", "", regex=False)
+                .str.replace(".", "", regex=False)
+                .str.replace(",", ".", regex=False)
+                .str.strip(),
                 errors="coerce"
             ).fillna(0)
+            
             total_gasto = valores_limpos.sum()
-            st.metric("Total Gasto", f"R$ {total_gasto:,.2f}")
+            st.metric("Total Gasto com Manutenções", f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
-       
             
 
 
