@@ -3,28 +3,9 @@ import streamlit as st
 import sqlite3
 import os
 
-# Configuração da página
-st.set_page_config(page_title="Manutenção de Veículos", page_icon="🏋️", layout="centered")
+st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
-st.title("🚗 Controle de Manutenção de Veículos")
-
-# Conexão com o banco de dados local (SQLite)
-DB_FILE = "manutencoes.db"
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute(""" 
-        CREATE TABLE IF NOT EXISTS manutencoes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            modelo TEXT,
-            placa TEXT,
-            servico TEXT,
-            km INTEGER,
-            data TEXT,
-            observacoes TEXT
-        )
-   def criar_tabela():
+def criar_tabela():
     conn = sqlite3.connect('salvcar.db')
     cursor = conn.cursor()
     cursor.execute("""
@@ -39,6 +20,10 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
+criar_tabela()
+
+def inserir_manutencao(data, veiculo, servico, valor, observacoes):
     conn = sqlite3.connect('salvcar.db')
     cursor = conn.cursor()
     cursor.execute("""
@@ -47,59 +32,46 @@ def init_db():
     """, (data, veiculo, servico, valor, observacoes))
     conn.commit()
     conn.close()
-# Inicializa o banco de dados
-init_db()
 
-# Formulário de Cadastro
-st.header("📋 Cadastrar Nova Manutenção")
+def listar_manutencoes():
+    conn = sqlite3.connect('salvcar.db')
+    df = pd.read_sql_query("SELECT * FROM manutencoes", conn)
+    conn.close()
+    return df
 
-with st.form("form_manutencao", clear_on_submit=True):
-    col1, col2 = st.columns(2)
+st.title("🚗 Salvcar - Controle de Manutenções")
+
+st.sidebar.header("Menu de Navegação")
+opcao = st.sidebar.radio("Selecione uma opção:", ["Cadastrar Manutenção", "Ver Relatório"])
+
+if opcao == "Cadastrar Manutenção":
+    st.header("Cadastrar Nova Manutenção")
     
-    with col1:
-        modelo = st.text_input("Modelo do Carro")
-        placa = st.text_input("Placa do Carro")
-        servico = st.selectbox("Tipo de Serviço", [
-            "Troca de Óleo", 
-            "Alinhamento e Balanceamento", 
-            "Troca de Pastilhas de Freio", 
-            "Revisão Geral", 
-            "Troca de Pneus",
-            "Outro"
-        ])
-    
-    with col2:
-        km = st.number_input("Quilometragem Atual (KM)", min_value=0, step=1000)
-        data = st.date_input("Data da Manutenção")
-        obs = st.text_area("Observações", placeholder="Ex: Marcas do filtro trocado, valor, etc.")
-    
-    submitted = st.form_submit_button("Salvar Manutenção")
-    
-    if submitted:
-        if not modelo or not placa:
-            st.warning("Por favor, preencha pelo menos o Modelo e a Placa.")
-        else:
-            salvar_dados(modelo, placa, servico, km, data, obs)
-            st.success("Manutenção cadastrada com sucesso!")
+    with st.form("form_manutencao"):
+        data = st.date_input("Data do Serviço")
+        veiculo = st.text_input("Placa / Modelo do Veículo")
+        servico = st.text_input("Descrição do Serviço")
+        valor = st.number_input("Valor (R$)", min_value=0.0, format="%.2f")
+        observacoes = st.text_area("Observações")
+        
+        submetido = st.form_submit_button("Salvar Manutenção")
+        
+        if submetido:
+            if veiculo and servico:
+                inserir_manutencao(str(data), veiculo, servico, valor, observacoes)
+                st.success("Manutenção cadastrada com sucesso!")
+            else:
+                st.error("Por favor, preencha os campos obrigatórios (Veículo e Serviço).")
 
-st.divider()
-
-# Exibição dos Dados e Download
-st.header("📊 Historico de Manutenções")
-
-df = carregar_dados()
-
-if not df.empty:
-    st.dataframe(df, use_container_width=True)
+elif opcao == "Ver Relatório":
+    st.header("Relatório de Manutenções")
     
-    # Botão para baixar em CSV / Excel
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Baixar Relatório em Excel (CSV)",
-        data=csv,
-        file_name="manutencoes_veiculos.csv",
-        mime="text/csv"
-    )
-else:
-    st.info("Nenhuma manutenção cadastrada ainda.")
-conn.close()
+    df = listar_manutencoes()
+    
+    if not df.empty:
+        st.dataframe(df, use_container_width=True)
+        
+        total_gasto = df["valor"].sum()
+        st.metric("Total Gasto com Manutenções", f"R$ {total_gasto:,.2f}")
+    else:
+        st.info("Nenhuma manutenção cadastrada até o momento.")
