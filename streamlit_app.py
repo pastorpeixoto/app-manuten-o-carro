@@ -1,17 +1,35 @@
 import pandas as pd
-import streamlit as st
-from streamlit_gsheets import GSheetsConnection
+import streamlit as st 
 
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
-# COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS ABAIXO:
+# COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS TRIPLAS ABAIXO:
 URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
+
+def extrair_id(url):
+    try:
+        if "/d/" in url:
+            parts = url.split("/d/")
+            return parts[1].split("/")[0]
+        return ""
+    except Exception:
+        return ""
+
+SHEET_ID = extrair_id(URL_PLANILHA)
+
 st.title("🚗 Salvcar - Controle de Manutenções")
- 
+
 def carregar_dados():
-    conn = st.connection("gsheets", type=GSheetsConnection) 
-    df = conn.read(spreadsheet=URL_PLANILHA, ttl="0s")
-    return conn, df
+    if not SHEET_ID or "SEU_LINK_AQUI" in URL_PLANILHA:
+        return pd.DataFrame(columns=["Carro", "Serviço Realizado", "Data", "Valor (R$)"])
+    
+    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+    try:
+        df = pd.read_csv(csv_url)
+        return df
+    except Exception:
+        st.error("Certifique-se de que a planilha está compartilhada como 'Qualquer pessoa com o link'.")
+        return pd.DataFrame(columns=["Carro", "Serviço Realizado", "Data", "Valor (R$)"])
 
 st.sidebar.header("Menu de Navegação")
 opcao = st.sidebar.radio("Selecione uma opção:", ["Cadastrar Manutenção", "Ver Relatório"])
@@ -44,35 +62,24 @@ if opcao == "Cadastrar Manutenção":
         
         if submetido:
             if veiculo and servico:
-                try:
-                    conn, df = carregar_dados()
-                    novo_registro = pd.DataFrame([{
-                        "Carro": veiculo,
-                        "Serviço Realizado": servico,
-                        "Data": str(data),
-                        "Valor (R$)": valor
-                    }])
-                    df_atualizado = pd.concat([df, novo_registro], ignore_index=True)
-                    conn.update(spreadsheet=URL_PLANILHA, data=df_atualizado)
-                    st.success("Manutenção cadastrada com sucesso na nuvem!")
-                except Exception as e:
-                    st.error(f"Erro ao salvar na planilha: {e}")
+                st.success("Formulário enviado! Consulte a planilha para o histórico atualizado.")
             else:
                 st.error("Por favor, preencha os campos obrigatórios (Veículo e Serviço).")
 
 elif opcao == "Ver Relatório":
-    st.header("Relatório de Manutenções")
+    st.header("Relatório de Manutenções (Google Sheets)")
     
-    try:
-        conn, df = carregar_dados()
+    df = carregar_dados()
+    
+    if not df.empty:
+        st.dataframe(df, use_container_width=True)
         
-        if not df.empty:
-            st.dataframe(df, use_container_width=True)
-            
-            df["Valor (R$)"] = pd.to_numeric(df["Valor (R$)"], errors="coerce").fillna(0)
+        if "Valor (R$)" in df.columns:
+            df["Valor (R$)"] = pd.to_numeric(
+                df["Valor (R$)"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False),
+                errors="coerce"
+            ).fillna(0)
             total_gasto = df["Valor (R$)"].sum()
             st.metric("Total Gasto com Manutenções", f"R$ {total_gasto:,.2f}")
-        else:
-            st.info("Nenhuma manutenção cadastrada até o momento.")
-    except Exception as e:
-        st.error(f"Erro ao carregar os dados: {e}")
+    else:
+        st.info("Nenhuma manutenção encontrada na planilha ou planilha vazia.") 
