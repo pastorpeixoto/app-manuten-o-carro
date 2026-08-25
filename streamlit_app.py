@@ -26,35 +26,18 @@ def init_db():
         )
     """)
 
-conn.commit()  
-
-cursor.execute("SELECT SUM(valor) FROM manutencoes")
-resultado = cursor.fetchone()
-custo_total = resultado[0] if resultado[0] is not None else 0.0
-
-st.metric(
-    label="Custo Total Acumulado", 
-    value=f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-)
-
-conn.close()
- 
-def carregar_dados():
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT id, modelo AS 'Modelo', placa AS 'Placa', servico AS 'Serviço', km AS 'KM', data AS 'Data', observacoes AS 'Observações' FROM manutencoes ORDER BY id DESC", conn)
+conn.commit()
     conn.close()
-    return df
 
-def salvar_dados(modelo, placa, servico, km, data, obs):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO manutencoes (modelo, placa, servico, km, data, observacoes)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (data, veiculo, servico, valor, observacoes)) 
+def inserir_manutencao(data, veiculo, servico, valor, observacoes):
+    conn = sqlite3.connect('salvcar.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO manutencoes (data, veiculo, servico, valor, observacoes)
+        VALUES (?, ?, ?, ?, ?)
+    """, (data, veiculo, servico, valor, observacoes))
     conn.commit()
     conn.close()
-
 # Inicializa o banco de dados
 init_db()
 
