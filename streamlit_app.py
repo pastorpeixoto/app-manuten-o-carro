@@ -1,5 +1,6 @@
 import pandas as pd
 import streamlit as st
+import re
 
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
@@ -63,37 +64,63 @@ elif opcao == "Ver Relatório":
     if not df.empty:
         st.dataframe(df, use_container_width=True)
         
-        # Procura a coluna de valor pelas palavras-chave ou seleciona a caixa de escolha
         colunas_disponiveis = list(df.columns)
         
-        # Tenta identificar automaticamente
-        coluna_valor_padrao = next((col for col in colunas_disponiveis if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])), colunas_disponiveis[-1])
+        # Tenta identificar automaticamente a coluna de valores
+        coluna_valor_padrao = next(
+            (col for col in colunas_disponiveis if any(k in str(col).lower() for k in ["valor", "preco", "preço", "custo", "r$", "total", "gasto"])), 
+            colunas_disponiveis[-1]
+        )
         
         st.markdown("---")
-        col_selecionada = st.selectbox("Selecione a coluna que contém os Valores (R$):", colunas_disponiveis, index=colunas_disponiveis.index(coluna_valor_padrao))
+        col_selecionada = st.selectbox(
+            "Selecione a coluna que contém os Valores (R$):", 
+            colunas_disponiveis, 
+            index=colunas_disponiveis.index(coluna_valor_padrao)
+        )
         
-        def converter_para_numero(val):
+        def limpar_valor_extremo(val):
             if pd.isna(val):
                 return 0.0
-            val_str = str(val).replace("R$", "").replace(" ", "").strip()
-            # Se tiver vírgula e ponto (ex: 1.500,00)
-            if "." in val_str and "," in val_str:
-                val_str = val_str.replace(".", "").replace(",", ".")
-            # Se tiver apenas vírgula (ex: 1500,00 ou 15,00)
-            elif "," in val_str:
-                val_str = val_str.replace(",", ".")
             
+            # Converte tudo para texto e remove letras/símbolos mantendo apenas digitos, pontos e virgulas
+            s = str(val).strip()
+            # Se for número puro (int ou float)
+            if isinstance(val, (int, float)):
+                return float(val)
+                
+            # Remove R$, espaços e caracteres não numéricos
+            s = re.sub(r"[^\d.,]", "", s)
+            
+            if not s:
+                return 0.0
+            
+            # Se tem ponto e vírgula (ex: 1.500,50) -> remove ponto, troca virgula por ponto
+            if "." in s and "," in s:
+                s = s.replace(".", "").replace(",", ".")
+            # Se tem apenas vírgula (ex: 1500,50 ou 15,00)
+            elif "," in s:
+                s = s.replace(",", ".")
+            # Se tem múltiplos pontos de milhar sem vírgula (ex: 1.500.000)
+            elif s.count(".") > 1:
+                s = s.replace(".", "")
+                
             try:
-                return float(val_str)
+                return float(s)
             except ValueError:
                 return 0.0
 
-        valores_convertidos = df[col_selecionada].apply(converter_para_numero)
+        valores_convertidos = df[col_selecionada].apply(limpar_valor_extremo)
         total_gasto = valores_convertidos.sum()
         
-        # Exibe o total formatado em Reais
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        st.metric("Total Gasto com Manutenções", total_fmt)
+        
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.metric("Total Gasto Somado", total_fmt)
+        with col_m2:
+            st.metric("Quantidade de Registros", len(df))
+            
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
 
