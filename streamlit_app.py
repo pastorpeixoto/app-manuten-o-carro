@@ -1,15 +1,18 @@
-import pandas as pd 
-import streamlit as st 
+import pandas as pd
+import streamlit as st
+import re
 
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
-# COLE SEU LINK COMPLETO ABAIXO DENTRO DAS ASPAS TRIPLAS:
-URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
+# COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS TRIPLAS ABAIXO:
+URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
 
 def obter_id(url):
     try:
-        if "/d/" in url:
-            return url.split("/d/")[1].split("/")[0]
+        # Busca a sequência de caracteres do ID da planilha logo após o '/d/'
+        match = re.search(r"/d/([a-zA-Z0-9-_]+)", url)
+        if match:
+            return match.group(1)
         return ""
     except Exception:
         return ""
@@ -20,7 +23,7 @@ st.title("🚗 Salvcar - Controle de Manutenções")
 
 def carregar_dados():
     if not SHEET_ID or "COLE_SEU_LINK_AQUI" in URL_PLANILHA:
-        st.warning("Insira o link da sua planilha no código do GitHub (linha 7).")
+        st.warning("Insira o link correto da sua planilha no código do GitHub (linha 8).")
         return pd.DataFrame()
     
     csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
@@ -28,9 +31,9 @@ def carregar_dados():
     try:
         df = pd.read_csv(csv_url)
         return df
-    except Exception as e:
-        st.error(f"Erro ao acessar a planilha. Código ID extraído: '{SHEET_ID}'")
-        st.info("Passo a passo para liberar: No Google Sheets, vá em Arquivo -> Compartilhar -> Publicar na web -> Escolha '.csv' -> Clique em Publicar.")
+    except Exception:
+        st.error(f"Não foi possível acessar a planilha (ID extraído: {SHEET_ID}).")
+        st.info("No Google Sheets, vá em: Arquivo -> Compartilhar -> Publicar na web -> Escolha '.csv' -> Clique em Publicar.")
         return pd.DataFrame()
 
 st.sidebar.header("Menu de Navegação")
@@ -86,5 +89,6 @@ elif opcao == "Ver Relatório":
             total_gasto = valores_limpos.sum()
             st.metric("Total Gasto", f"R$ {total_gasto:,.2f}")
     else:
-        st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.") 
+        st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
+
 
