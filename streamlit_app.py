@@ -10,7 +10,7 @@ URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.co
 st.title("🚗 Salvcar - Controle de Manutenções")
 
 def carregar_dados():
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets", type=GSheetsConnection) 
     df = conn.read(spreadsheet=URL_PLANILHA, ttl="0s")
     return conn, df
 
