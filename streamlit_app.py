@@ -36,7 +36,16 @@ st.metric(
     label="Custo Total Acumulado", 
     value=f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 )
-    conn.commit()
+    conn.commit() 
+cursor.execute("SELECT SUM(valor) FROM manutencoes")
+resultado = cursor.fetchone()
+custo_total = resultado[0] if resultado[0] is not None else 0.0
+
+st.metric(
+    label="Custo Total Acumulado", 
+    value=f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+)
+
     conn.close()
 
 def carregar_dados():
