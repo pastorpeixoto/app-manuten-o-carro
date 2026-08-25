@@ -51,7 +51,7 @@ def salvar_dados(modelo, placa, servico, km, data, obs):
     c.execute("""
         INSERT INTO manutencoes (modelo, placa, servico, km, data, observacoes)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (modelo, placa, servico, km, str(data), obs))
+    """, (data, veiculo, servico, valor, observacoes)) 
     conn.commit()
     conn.close()
 
