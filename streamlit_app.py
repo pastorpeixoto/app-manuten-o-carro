@@ -21,6 +21,21 @@ def carregar_dados():
         st.error("Não foi possível carregar a planilha. Verifique se o link publicado na web foi copiado corretamente.")
         return pd.DataFrame()
 
+def extrair_valor_numerico(item):
+    txt = str(item).strip()
+    numeros = re.findall(r"[\d.,]+", txt)
+    if numeros:
+        val_str = numeros[0]
+        if "." in val_str and "," in val_str:
+            val_str = val_str.replace(".", "").replace(",", ".")
+        elif "," in val_str:
+            val_str = val_str.replace(",", ".")
+        try:
+            return float(val_str)
+        except ValueError:
+            return 0.0
+    return 0.0
+
 st.sidebar.header("Menu de Navegação")
 opcao = st.sidebar.radio("Selecione uma opção:", ["Cadastrar Manutenção", "Ver Relatório"])
 
@@ -57,45 +72,63 @@ if opcao == "Cadastrar Manutenção":
                 st.error("Por favor, preencha os campos obrigatórios (Veículo e Serviço).")
 
 elif opcao == "Ver Relatório":
-    st.header("Relatório de Manutenções (Google Sheets)")
+    st.header("Relatório & Gráficos de Manutenções")
     
     df = carregar_dados()
     
     if not df.empty:
-        st.dataframe(df, use_container_width=True)
+        # Coluna D (índice 3 no Python) para os valores numéricos
+        col_valor = df.columns[3] if len(df.columns) >= 4 else df.columns[-1]
         
-        # Pega a Coluna D (índice 3 no Python, pois começa em 0: A=0, B=1, C=2, D=3)
-        if len(df.columns) >= 4:
-            col_selecionada = df.columns[3] # Coluna D
-        else:
-            col_selecionada = df.columns[-1] # Caso tenha menos colunas, pega a última
+        # Cria uma coluna numérica limpa para os cálculos e gráficos
+        df['Valor_Limpo'] = df[col_valor].apply(extrair_valor_numerico)
         
-        st.markdown(f"*Coluna calculada para o Total:* {col_selecionada} (Coluna D)")
+        # Filtro de Veículo no Menu Lateral
+        col_veiculo = df.columns[1] if len(df.columns) >= 2 else df.columns[0]
+        lista_veiculos = ["Todos"] + sorted(list(df[col_veiculo].dropna().astype(str).unique()))
+        veiculo_selecionado = st.sidebar.selectbox("Filtrar por Veículo:", lista_veiculos)
         
-        # Soma linha a linha os valores da Coluna D
-        total_gasto = 0.0
-        for item in df[col_selecionada]:
-            txt = str(item).strip()
-            # Extrai os números e vírgulas/pontos
-            numeros = re.findall(r"[\d.,]+", txt)
-            if numeros:
-                val_str = numeros[0]
-                if "." in val_str and "," in val_str:
-                    val_str = val_str.replace(".", "").replace(",", ".")
-                elif "," in val_str:
-                    val_str = val_str.replace(",", ".")
-                try:
-                    total_gasto += float(val_str)
-                except ValueError:
-                    pass
+        df_filtrado = df if veiculo_selecionado == "Todos" else df[df[col_veiculo].astype(str) == veiculo_selecionado]
         
+        # Exibição das Métricas Principais
+        total_gasto = df_filtrado['Valor_Limpo'].sum()
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             st.metric("Total Gasto Somado", total_fmt)
         with col_m2:
-            st.metric("Quantidade de Registros", len(df))
+            st.metric("Quantidade de Registros", len(df_filtrado))
+            
+        st.markdown("---")
+        
+        # Seção de Gráficos Visuais
+        st.subheader("📊 Análise Visual de Custos")
+        
+        col_g1, col_g2 = st.columns(2)
+        
+        # Gráfico 1: Custos por tipo de serviço
+        col_servico = df.columns[2] if len(df.columns) >= 3 else df.columns[0]
+        gastos_servico = df_filtrado.groupby(col_servico)['Valor_Limpo'].sum().reset_index()
+        gastos_servico = gastos_servico.sort_values(by='Valor_Limpo', ascending=False)
+        
+        with col_g1:
+            st.markdown("*Gasto Total por Serviço (R$)*")
+            st.bar_chart(data=gastos_servico, x=col_servico, y='Valor_Limpo', color="#0066CC")
+            
+        # Gráfico 2: Custos por veículo
+        with col_g2:
+            st.markdown("*Gasto Total por Veículo (R$)*")
+            gastos_veiculo = df_filtrado.groupby(col_veiculo)['Valor_Limpo'].sum().reset_index()
+            gastos_veiculo = gastos_veiculo.sort_values(by='Valor_Limpo', ascending=False)
+            st.bar_chart(data=gastos_veiculo, x=col_veiculo, y='Valor_Limpo', color="#2E7D32")
+            
+        st.markdown("---")
+        st.subheader("📋 Tabela Detalhada de Registros")
+        
+        # Exibe a tabela sem a coluna técnica extra
+        df_display = df_filtrado.drop(columns=['Valor_Limpo'], errors='ignore')
+        st.dataframe(df_display, use_container_width=True)
             
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
