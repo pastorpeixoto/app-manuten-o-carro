@@ -1,35 +1,36 @@
-import pandas as pd
-import streamlit as st
+import pandas as pd 
+import streamlit as st 
 
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
-# COLE O LINK DA SUA PLANILHA DENTRO DAS ASPAS TRIPLAS ABAIXO:
+# COLE SEU LINK COMPLETO ABAIXO DENTRO DAS ASPAS TRIPLAS:
 URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
 
-def obter_url_csv(url):
+def obter_id(url):
     try:
         if "/d/" in url:
-            sheet_id = url.split("/d/")[1].split("/")[0]
-            return f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
-        return url
+            return url.split("/d/")[1].split("/")[0]
+        return ""
     except Exception:
-        return url
+        return ""
+
+SHEET_ID = obter_id(URL_PLANILHA)
 
 st.title("🚗 Salvcar - Controle de Manutenções")
 
 def carregar_dados():
-    if "SEU_LINK_AQUI" in URL_PLANILHA:
-        st.warning("Insira o link da sua planilha na variável URL_PLANILHA no código.")
+    if not SHEET_ID or "COLE_SEU_LINK_AQUI" in URL_PLANILHA:
+        st.warning("Insira o link da sua planilha no código do GitHub (linha 7).")
         return pd.DataFrame()
     
-    csv_url = obter_url_csv(URL_PLANILHA)
+    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
     
     try:
-        # Lê o CSV público gerado diretamente pelo Google Sheets
         df = pd.read_csv(csv_url)
         return df
     except Exception as e:
-        st.error("Não foi possível carregar a planilha. Verifique se em 'Compartilhar' ela está como 'Qualquer pessoa com o link'.")
+        st.error(f"Erro ao acessar a planilha. Código ID extraído: '{SHEET_ID}'")
+        st.info("Passo a passo para liberar: No Google Sheets, vá em Arquivo -> Compartilhar -> Publicar na web -> Escolha '.csv' -> Clique em Publicar.")
         return pd.DataFrame()
 
 st.sidebar.header("Menu de Navegação")
@@ -75,9 +76,7 @@ elif opcao == "Ver Relatório":
     if not df.empty:
         st.dataframe(df, use_container_width=True)
         
-        # Procura qualquer coluna que tenha a palavra "valor", "preço" ou "custo" para somar
         colunas_valor = [col for col in df.columns if any(k in str(col).lower() for k in ["valor", "preco", "custo", "r$"])]
-        
         if colunas_valor:
             col_nome = colunas_valor[0]
             valores_limpos = pd.to_numeric(
@@ -87,5 +86,5 @@ elif opcao == "Ver Relatório":
             total_gasto = valores_limpos.sum()
             st.metric("Total Gasto", f"R$ {total_gasto:,.2f}")
     else:
-        st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
-       
+        st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.") 
+
