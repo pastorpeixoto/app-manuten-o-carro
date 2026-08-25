@@ -26,6 +26,7 @@ def init_db():
         )
     ''')
 
+conn.commit()
     # --- CÓDIGO DO CUSTO TOTAL ---
 cursor.execute("SELECT SUM(valor) FROM manutencoes")
 resultado = cursor.fetchone()
