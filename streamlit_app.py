@@ -35,9 +35,8 @@ custo_total = resultado[0] if resultado[0] is not None else 0.0
 st.metric(
     label="Custo Total Acumulado", 
     value=f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-)
-    conn.close()
-
+)conn.close()
+ 
 def carregar_dados():
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query("SELECT id, modelo AS 'Modelo', placa AS 'Placa', servico AS 'Serviço', km AS 'KM', data AS 'Data', observacoes AS 'Observações' FROM manutencoes ORDER BY id DESC", conn)
