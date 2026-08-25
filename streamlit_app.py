@@ -24,9 +24,9 @@ def init_db():
             data TEXT,
             observacoes TEXT
         )
-    ''')
+    """)
 
-conn.commit()
+conn.commit()  
 
 cursor.execute("SELECT SUM(valor) FROM manutencoes")
 resultado = cursor.fetchone()
