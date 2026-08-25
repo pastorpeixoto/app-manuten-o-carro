@@ -36,7 +36,6 @@ st.metric(
     label="Custo Total Acumulado", 
     value=f"R$ {custo_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 )
-
     conn.close()
 
 def carregar_dados():
