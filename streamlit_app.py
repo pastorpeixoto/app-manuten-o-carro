@@ -1,39 +1,23 @@
 import pandas as pd
 import streamlit as st
-import re
 
 st.set_page_config(page_title="Salvcar - Gestão de Manutenções", page_icon="🚗", layout="wide")
 
-# COLE O LINK DA SUA PLANILHA ENTRE AS ASPAS TRIPLAS ABAIXO:
-URL_PLANILHA = r"""https://docs.google.com/spreadsheets/d/1F3d_IMSvhn9k9vHJeu2LLQRwPdkvT98ycRhlXJmoe8w/edit?gid=1366024982#gid=1366024982/edit"""
-
-def obter_id(url):
-    try:
-        # Busca a sequência de caracteres do ID da planilha logo após o '/d/'
-        match = re.search(r"/d/([a-zA-Z0-9-_]+)", url)
-        if match:
-            return match.group(1)
-        return ""
-    except Exception:
-        return ""
-
-SHEET_ID = obter_id(URL_PLANILHA)
+# 1. LINK DA PLANILHA PUBLICADA NA WEB (formato CSV):
+URL_PUBLICADA_CSV = r"""https://docs.google.com/spreadsheets/d/e/2PACX-1vTpcVNInjDdwUZ5E0tgRARfXn63Bx3zBRgFngEW4ffivNPv1bICkbeDfeO-74vUESMg93pj0-Ppyu9p/pub?output=csv"""
 
 st.title("🚗 Salvcar - Controle de Manutenções")
 
 def carregar_dados():
-    if not SHEET_ID or "COLE_SEU_LINK_AQUI" in URL_PLANILHA:
-        st.warning("Insira o link correto da sua planilha no código do GitHub (linha 8).")
+    if "PASTE_AQUI" in URL_PUBLICADA_CSV:
+        st.warning("Cole o link gerado em 'Publicar na web' na linha 8 do seu código no GitHub.")
         return pd.DataFrame()
     
-    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
-    
     try:
-        df = pd.read_csv(csv_url)
+        df = pd.read_csv(URL_PUBLICADA_CSV)
         return df
-    except Exception:
-        st.error(f"Não foi possível acessar a planilha (ID extraído: {SHEET_ID}).")
-        st.info("No Google Sheets, vá em: Arquivo -> Compartilhar -> Publicar na web -> Escolha '.csv' -> Clique em Publicar.")
+    except Exception as e:
+        st.error("Não foi possível carregar a planilha. Verifique se o link publicado na web foi copiado corretamente.")
         return pd.DataFrame()
 
 st.sidebar.header("Menu de Navegação")
@@ -90,5 +74,7 @@ elif opcao == "Ver Relatório":
             st.metric("Total Gasto", f"R$ {total_gasto:,.2f}")
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
+       
+            
 
 
