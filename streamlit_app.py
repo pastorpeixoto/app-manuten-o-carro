@@ -18,7 +18,6 @@ def carregar_dados_brutos():
         return pd.DataFrame()
     
     try:
-        # Lê o CSV sem cabeçalho fixo para termos controle total das linhas
         df = pd.read_csv(URL_PUBLICADA_CSV, header=None)
         return df
     except Exception as e:
@@ -85,16 +84,15 @@ elif opcao == "Ver Relatório":
         df_bruto = df_bruto.replace(to_replace=r'(?i)noni', value='', regex=True)
         
         # --- PROCESSAMENTO DA TABELA 1: MANUTENÇÃO DE VEÍCULOS ---
-        # Buscamos dinamicamente onde está a linha escrita "Manutenção" ou pegamos as primeiras linhas de dados úteis
         try:
-            # Isola a parte de Manutenções (ajustável conforme a posição na planilha)
-            # Geralmente começa logo após o título principal
             df_manut = df_bruto.iloc[2:6, 0:4].copy()
             df_manut.columns = ["Carro", "Serviço realizado", "Data", "Valor"]
             df_manut = df_manut.dropna(how='all').fillna("")
             
-            # Remove linhas de cabeçalho duplicadas se houver
-            df_manut = df_manut[~df_manut["Carro"].str.contains("Carro|Manutenção", case=False, na=False)]
+            # FILTRO CRUCIAL: Remove linhas que contenham palavras de cabeçalho ou da outra tabela (como "pneus")
+            filtro_lixo = df_manut["Carro"].str.contains("Carro|Manutenção|Pneu|Registro", case=False, na=False) | \
+                          df_manut["Serviço realizado"].str.contains("Pneu|Registro|Troca de pneus", case=False, na=False)
+            df_manut = df_manut[~filtro_lixo]
             
             # Prepara valores para os gráficos
             df_manut['Valor_Limpo'] = df_manut["Valor"].apply(extrair_valor_numerico)
@@ -111,7 +109,7 @@ elif opcao == "Ver Relatório":
                 
             st.markdown("---")
             
-            # --- GRÁFICOS BASEADOS NA TABELA DE MANUTENÇÃO ---
+            # --- GRÁFICOS ---
             st.subheader("📊 Análise Visual de Custos (Manutenções)")
             col_g1, col_g2 = st.columns(2)
             
@@ -133,12 +131,11 @@ elif opcao == "Ver Relatório":
                     st.info("Sem dados suficientes.")
                     
         except Exception as e:
-            st.warning("Não foi possível carregar a tabela de manutenções automaticamente.")
             df_manut = pd.DataFrame()
 
         st.markdown("---")
         
-        # Exibe a Tabela 1 Completa
+        # Exibe a Tabela 1 limpa (Apenas os carros e serviços reais)
         st.subheader("📋 Tabela Detalhada: Manutenção de Veículo")
         if not df_manut.empty:
             df_manut_display = df_manut.drop(columns=['Valor_Limpo'], errors='ignore')
@@ -151,7 +148,6 @@ elif opcao == "Ver Relatório":
         # --- PROCESSAMENTO DA TABELA 2: REGISTRO DE TROCA DE PNEUS ---
         st.subheader("🛞 Tabela Detalhada: Registro de Troca de Pneus")
         try:
-            # Isola a parte de pneus mais abaixo na planilha (ajuste o intervalo se necessário)
             df_pneus = df_bruto.iloc[8:12, 0:4].copy()
             df_pneus.columns = ["Carro", "Data da troca", "Marca do pneu", "Quilometragem"]
             df_pneus = df_pneus.dropna(how='all').fillna("")
@@ -167,5 +163,4 @@ elif opcao == "Ver Relatório":
             st.info("Aguardando preenchimento dos dados de troca de pneus.")
             
     else:
-        st.info("A planilha está vazia ou não pôde ser lida.")
 
