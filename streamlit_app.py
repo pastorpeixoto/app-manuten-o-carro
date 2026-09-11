@@ -80,6 +80,10 @@ elif opcao == "Ver Relatório":
     df = carregar_dados()
     
     if not df.empty:
+        # --- LIMPEZA DE DADOS INDESEJADOS ---
+        # Substitui a palavra "noni" (ignorando maiúsculas/minúsculas) por vazio/hífen para limpar a tabela
+        df = df.replace(to_replace=r'(?i)noni', value='-', regex=True)
+        
         # Coluna D (índice 3) para os valores numéricos
         col_valor = df.columns[3] if len(df.columns) >= 4 else df.columns[-1]
         
@@ -130,12 +134,12 @@ elif opcao == "Ver Relatório":
         g_veiculo.columns = ['Veículo', 'Valor (R$)']
         
         with col_g1:
-            st.markdown("*Gasto Total por Serviço (R$)*")
+            st.markdown("Gasto Total por Serviço (R$)")
             st.bar_chart(data=g_servico, x='Serviço', y='Valor (R$)')
             st.dataframe(g_servico, use_container_width=True, hide_index=True)
             
         with col_g2:
-            st.markdown("*Gasto Total por Veículo (R$)*")
+            st.markdown("Gasto Total por Veículo (R$)")
             st.bar_chart(data=g_veiculo, x='Veículo', y='Valor (R$)')
             st.dataframe(g_veiculo, use_container_width=True, hide_index=True)
             
@@ -143,6 +147,9 @@ elif opcao == "Ver Relatório":
         st.subheader("📋 Tabela Detalhada de Registros")
         
         df_display = df_filtrado.drop(columns=['Valor_Limpo'], errors='ignore')
+        # Preenche valores vazios/NaN com hífen para a tabela ficar visualmente limpa
+        df_display = df_display.fillna("-")
+        
         st.dataframe(df_display, use_container_width=True)
             
     else:
