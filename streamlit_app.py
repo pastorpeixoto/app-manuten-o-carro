@@ -18,7 +18,6 @@ def carregar_dados():
         return pd.DataFrame()
     
     try:
-        # Usa a linha 1 como cabeçalho para a tabela principal de manutenções
         df = pd.read_csv(URL_PUBLICADA_CSV, header=1)
         df = df.dropna(how='all')
         return df
@@ -82,7 +81,7 @@ elif opcao == "Ver Relatório":
     df = carregar_dados()
     
     if not df.empty:
-        # Limpeza de dados indesejados
+        # Limpeza de dados indesejados e termos corrompidos
         df = df.replace(to_replace=r'(?i)noni', value='', regex=True)
         
         # Identifica colunas dinamicamente
@@ -94,19 +93,23 @@ elif opcao == "Ver Relatório":
         col_veiculo = next((df.columns[i] for i, c in enumerate(colunas_disponiveis) if 'carro' in c or 'veículo' in c or 'veiculo' in c), df.columns[0])
         col_servico = next((df.columns[i] for i, c in enumerate(colunas_disponiveis) if 'serviço' in c or 'servico' in c), df.columns[1] if len(df.columns) > 1 else df.columns[0])
         
+        # FILTRA LINHAS INCOMPATÍVEIS (Remove linhas que são títulos de outras tabelas, como "Registro de troca de pneus")
+        mask_valida = ~df[col_servico].astype(str).str.contains(r'pneus|troca de pneus|registro', case=False, na=False)
+        df_manutencao = df[mask_valida].copy()
+        
         # --- FILTRO POR VEÍCULO NA BARRA LATERAL ---
         st.sidebar.markdown("---")
         st.sidebar.header("Filtros")
         
-        veiculos_unicos = df[col_veiculo].dropna().astype(str).unique()
+        veiculos_unicos = df_manutencao[col_veiculo].dropna().astype(str).unique()
         lista_veiculos = ["Todos os Veículos"] + sorted(list(veiculos_unicos))
         
         veiculo_selecionado = st.sidebar.selectbox("Filtrar por Veículo:", lista_veiculos)
         
         if veiculo_selecionado != "Todos os Veículos":
-            df_filtrado = df[df[col_veiculo].astype(str) == veiculo_selecionado]
+            df_filtrado = df_manutencao[df_manutencao[col_veiculo].astype(str) == veiculo_selecionado]
         else:
-            df_filtrado = df
+            df_filtrado = df_manutencao
         
         # Métricas no topo
         total_gasto = df_filtrado['Valor_Limpo'].sum()
@@ -120,12 +123,11 @@ elif opcao == "Ver Relatório":
             
         st.markdown("---")
         
-        # --- SEÇÃO DE GRÁFICOS RESTAURADA ---
+        # --- SEÇÃO DE GRÁFICOS ---
         st.subheader("📊 Análise Visual de Custos")
         
         col_g1, col_g2 = st.columns(2)
         
-        # Agrupamento seguro por Serviço e Veículo
         g_servico = df_filtrado.groupby(df_filtrado[col_servico].astype(str))['Valor_Limpo'].sum().reset_index()
         g_servico.columns = ['Serviço', 'Valor (R$)']
         
@@ -137,27 +139,33 @@ elif opcao == "Ver Relatório":
             if not g_servico.empty and g_servico['Valor (R$)'].sum() > 0:
                 st.bar_chart(data=g_servico, x='Serviço', y='Valor (R$)')
             else:
-                st.info("Sem dados numéricos suficientes para gerar o gráfico de serviços.")
+                st.info("Sem dados suficientes para o gráfico de serviços.")
             
         with col_g2:
             st.markdown("Gasto Total por Veículo (R$)")
             if not g_veiculo.empty and g_veiculo['Valor (R$)'].sum() > 0:
                 st.bar_chart(data=g_veiculo, x='Veículo', y='Valor (R$)')
             else:
-                st.info("Sem dados numéricos suficientes para gerar o gráfico de veículos.")
+                st.info("Sem dados suficientes para o gráfico de veículos.")
             
         st.markdown("---")
         
-        # --- TABELA DETALHADA DE MANUTENÇÃO ---
+        # --- TABELA DETALHADA DE MANUTENÇÃO LIMPA ---
         st.subheader("📋 Tabela Detalhada de Manutenções")
         df_display = df_filtrado.drop(columns=['Valor_Limpo'], errors='ignore')
         df_display = df_display.fillna("")
-        st.dataframe(df_display, use_container_width=True)
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
         
-        # --- SEÇÃO SEPARADA PARA PNEUS (Caso queira adicionar colunas específicas depois) ---
+        # --- SEÇÃO DE PNEUS ISOLADA (Pegando as linhas que contêm dados de pneus) ---
         st.markdown("---")
         st.subheader("🛞 Registro de Troca de Pneus")
-        st.info("Dica: Os registros de pneus e alinhamentos podem ser cadastrados ou separados em breve nesta seção.")
+        
+        df_pneus = df[df[col_servico].astype(str).str.contains(r'pneus|troca de pneus|registro', case=False, na=False)].copy()
+        if not df_pneus.empty:
+            df_pneus_display = df_pneus.drop(columns=['Valor_Limpo'], errors='ignore').fillna("")
+            st.dataframe(df_pneus_display, use_container_width=True, hide_index=True)
+        else:
+            st.info("Nenhum registro específico de pneus separado na listagem atual.")
             
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
