@@ -14,14 +14,15 @@ st.title(f"🚗 {NOME_SISTEMA}")
 
 def carregar_dados():
     if "SUA_URL_PUBLICADA" in URL_PUBLICADA_CSV:
-        st.warning("Cole o link gerado em 'Publicar na web' no seu código.")
+        st.warning("Cole o link gerado em 'Publicار na web' no seu código.")
         return pd.DataFrame()
     
     try:
-        # header=1 faz o Pandas ignorar a linha 0 (título geral) e usar a linha 1 como o cabeçalho real da tabela
+        # Se a linha de cabeçalho exata estiver na linha 2 da planilha (índice 1 no python), use header=1. 
+        # Se estiver na linha 1, altere para header=0.
         df = pd.read_csv(URL_PUBLICADA_CSV, header=1)
         
-        # Remove colunas ou linhas que venham completamente vazias
+        # Remove linhas totalmente vazias
         df = df.dropna(how='all')
         return df
     except Exception as e:
@@ -84,23 +85,21 @@ elif opcao == "Ver Relatório":
     df = carregar_dados()
     
     if not df.empty:
-        # --- LIMPEZA DE DADOS INDESEJADOS ---
+        # Limpeza de dados indesejados
         df = df.replace(to_replace=r'(?i)noni', value='', regex=True)
         
-        # Identifica dinamicamente as colunas com base nos nomes reais do cabeçalho
-        colunas_disponiveis = [c.strip().lower() for c in df.columns]
+        # Identifica colunas dinamicamente com base no texto
+        colunas_disponiveis = [str(c).strip().lower() for c in df.columns]
         
-        # Tenta achar a coluna de valor (procura por 'valor' no nome)
+        # Tenta achar a coluna de valor
         col_valor = next((df.columns[i] for i, c in enumerate(colunas_disponiveis) if 'valor' in c), df.columns[-1])
-        
-        # Converte valores da coluna de custo em números
         df['Valor_Limpo'] = df[col_valor].apply(extrair_valor_numerico)
         
-        # Tenta achar as colunas de veículo e serviço
+        # Tenta achar colunas de veículo e serviço
         col_veiculo = next((df.columns[i] for i, c in enumerate(colunas_disponiveis) if 'carro' in c or 'veículo' in c or 'veiculo' in c), df.columns[0])
         col_servico = next((df.columns[i] for i, c in enumerate(colunas_disponiveis) if 'serviço' in c or 'servico' in c), df.columns[1] if len(df.columns) > 1 else df.columns[0])
         
-        # --- FILTRO POR VEÍCULO NA BARRA LATERAL ---
+        # Filtros na barra lateral
         st.sidebar.markdown("---")
         st.sidebar.header("Filtros")
         
@@ -114,7 +113,7 @@ elif opcao == "Ver Relatório":
         else:
             df_filtrado = df
         
-        # Métricas no topo
+        # Métricas
         total_gasto = df_filtrado['Valor_Limpo'].sum()
         total_fmt = f"R$ {total_gasto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
@@ -126,9 +125,7 @@ elif opcao == "Ver Relatório":
             
         st.markdown("---")
         
-        # Seção de Gráficos e Resumos
         st.subheader("📊 Análise Visual de Custos")
-        
         col_g1, col_g2 = st.columns(2)
         
         g_servico = df_filtrado.groupby(df_filtrado[col_servico].astype(str))['Valor_Limpo'].sum().reset_index()
@@ -150,6 +147,7 @@ elif opcao == "Ver Relatório":
         st.markdown("---")
         st.subheader("📋 Tabela Detalhada de Registros")
         
+        # Exibe TODAS as colunas originais da planilha (sem ocultar nada, exceto a coluna auxiliar de cálculo)
         df_display = df_filtrado.drop(columns=['Valor_Limpo'], errors='ignore')
         df_display = df_display.fillna("")
         
@@ -157,7 +155,6 @@ elif opcao == "Ver Relatório":
             
     else:
         st.info("Nenhuma manutenção encontrada na planilha ou a planilha está vazia.")
-            
 
 
 
