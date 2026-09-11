@@ -83,15 +83,42 @@ elif opcao == "Ver Relatório":
         # Limpeza geral de termos indesejados ("noni", etc.)
         df_bruto = df_bruto.replace(to_replace=r'(?i)noni', value='', regex=True)
         
-        # --- PROCESSAMENTO DA TABELA 1: MANUTENÇÃO DE VEÍCULOS ---
+        # Converte todo o DataFrame para string para facilitar a busca de palavras-chave
+        df_str = df_bruto.astype(str)
+        
+        # Encontra a linha onde começa a tabela de pneus (se houver)
+        mask_pneus = df_str.apply(lambda row: row.str.contains('pneu|quilometragem', case=False, na=False).any(), axis=1)
+        indices_pneus = df_str[mask_pneus].index.tolist()
+        
+        if indices_pneus:
+            corte_idx = indices_pneus[0]
+            df_manut_raw = df_bruto.iloc[:corte_idx]
+            df_pneus_raw = df_bruto.iloc[corte_idx:]
+        else:
+            df_manut_raw = df_bruto
+            df_pneus_raw = pd.DataFrame()
+
+        # --- PROCESSAMENTO DA TABELA DE MANUTENÇÃO ---
         try:
-            df_manut = df_bruto.iloc[2:6, 0:4].copy()
-            df_manut.columns = ["Carro", "Serviço realizado", "Data", "Valor"]
+            # Encontra a linha que contém os cabeçalhos reais (Carro, Serviço, Data, Valor)
+            mask_head = df_manut_raw.apply(lambda row: row.str.contains('carro|serviço|servico', case=False, na=False).any(), axis=1)
+            head_idx = df_manut_raw[mask_head].index[0] if not df_manut_raw[mask_head].empty else 1
+            
+            df_manut = df_manut_raw.iloc[head_idx + 1:].copy()
+            cols_manut = df_manut_raw.iloc[head_idx].values
+            
+            # Ajusta colunas se tiverem o tamanho correto
+            if len(cols_manut) >= 4:
+                df_manut = df_manut.iloc[:, :4]
+                df_manut.columns = ["Carro", "Serviço realizado", "Data", "Valor"]
+            else:
+                df_manut.columns = [f"Col_{i}" for i in range(df_manut.shape[1])]
+                
             df_manut = df_manut.dropna(how='all').fillna("")
             
-            # FILTRO CRUCIAL: Remove linhas que contenham palavras de cabeçalho ou da outra tabela (como "pneus")
-            filtro_lixo = df_manut["Carro"].str.contains("Carro|Manutenção|Pneu|Registro", case=False, na=False) | \
-                          df_manut["Serviço realizado"].str.contains("Pneu|Registro|Troca de pneus", case=False, na=False)
+            # Remove linhas que contenham títulos ou textos indesejados
+            filtro_lixo = df_manut["Carro"].str.contains("carro|manutenção|controle|registro", case=False, na=False) | \
+                          df_manut["Serviço realizado"].str.contains("serviço|servico|registro", case=False, na=False)
             df_manut = df_manut[~filtro_lixo]
             
             # Prepara valores para os gráficos
@@ -135,7 +162,7 @@ elif opcao == "Ver Relatório":
 
         st.markdown("---")
         
-        # Exibe a Tabela 1 limpa (Apenas os carros e serviços reais)
+        # Exibe a Tabela de Manutenções limpa
         st.subheader("📋 Tabela Detalhada: Manutenção de Veículo")
         if not df_manut.empty:
             df_manut_display = df_manut.drop(columns=['Valor_Limpo'], errors='ignore')
@@ -145,22 +172,25 @@ elif opcao == "Ver Relatório":
 
         st.markdown("---")
         
-        # --- PROCESSAMENTO DA TABELA 2: REGISTRO DE TROCA DE PNEUS ---
+        # --- PROCESSAMENTO DA TABELA DE PNEUS ---
         st.subheader("🛞 Tabela Detalhada: Registro de Troca de Pneus")
         try:
-            df_pneus = df_bruto.iloc[8:12, 0:4].copy()
-            df_pneus.columns = ["Carro", "Data da troca", "Marca do pneu", "Quilometragem"]
-            df_pneus = df_pneus.dropna(how='all').fillna("")
-            
-            # Remove linhas de cabeçalho duplicadas se houver
-            df_pneus = df_pneus[~df_pneus["Carro"].str.contains("Carro|Pneus|Registro", case=False, na=False)]
-            
-            if not df_pneus.empty:
-                st.dataframe(df_pneus, use_container_width=True, hide_index=True)
+            if not df_pneus_raw.empty:
+                # Pula a linha do título "Registro de troca de pneus" e pega o cabeçalho real
+                df_pneus = df_pneus_raw.iloc[1:].copy()
+                df_pneus = df_pneus.dropna(how='all').fillna("")
+                
+                if len(df_pneus) > 1:
+                    # Define cabeçalho e limpa linhas vazias/títulos duplicados
+                    df_pneus.columns = ["Carro", "Data da troca", "Marca do pneu", "Quilometragem"] if df_pneus.shape[1] >= 4 else [f"Col_{i}" for i in range(df_pneus.shape[1])]
+                    df_pneus = df_pneus[~df_pneus.iloc[:, 0].astype(str).str.contains("Carro|Pneus|Registro", case=False, na=False)]
+                    st.dataframe(df_pneus, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Aguardando preenchimento dos dados de troca de pneus.")
             else:
                 st.info("Nenhum registro de pneu cadastrado nesta seção.")
         except Exception as e:
             st.info("Aguardando preenchimento dos dados de troca de pneus.")
             
     else:
-
+        st.info("A planilha está vazia ou não pôde ser lida.")
